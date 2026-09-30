@@ -1,0 +1,22 @@
+{
+  "name": "cinematch-web",
+  "version": "1.0.0",
+  "description": "CineMatch Web - recomendação de séries usando a TVMaze API.",
+  "type": "module",
+  "scripts": {
+    "start": "live-server",
+    "dev": "live-server"
+  },
+  "keywords": [
+    "javascript",
+    "html",
+    "css",
+    "tvmaze",
+    "cinematch"
+  ],
+  "author": "Estudante",
+  "license": "ISC",
+  "devDependencies": {
+    "live-server": "^1.2.2"
+  }
+}
