@@ -1,8 +1,15 @@
 import { Serie } from "./modelo.js";
 import {
-  mostrarResultados, mostrarCarregando, mostrarErro, limparResultados,
-  mostrarVazio, atualizarResumoPerfil, atualizarStatus,
-  renderizarResultados, criarMensagemCallback, atualizarMensagemCallback
+  mostrarResultados,
+  mostrarCarregando,
+  mostrarErro,
+  limparResultados,
+  mostrarVazio,
+  atualizarResumoPerfil,
+  atualizarStatus,
+  renderizarResultados,
+  criarMensagemCallback,
+  atualizarMensagemCallback
 } from "./ui.js";
 
 const CHAVE_PERFIL = "cinematchPerfil";
@@ -39,9 +46,15 @@ function obterPerfilDoFormulario() {
 }
 
 function validarPerfil(perfil) {
-  if (perfil.nome.length < 2) return "Digite seu nome com pelo menos 2 caracteres.";
+  if (perfil.nome.length < 2) {
+    return "Digite seu nome com pelo menos 2 caracteres.";
+  }
 
-  if (!Number.isInteger(perfil.idade) || perfil.idade < 1 || perfil.idade > 120) {
+  if (
+    !Number.isInteger(perfil.idade) ||
+    perfil.idade < 1 ||
+    perfil.idade > 120
+  ) {
     return "Digite uma idade válida.";
   }
 
@@ -106,7 +119,10 @@ function transformarCatalogo(dados) {
   return dados
     .filter(show => Array.isArray(show.genres) && show.genres.length > 0)
     .filter(show => Number(show.rating?.average) > 0)
-    .sort((a, b) => (b.rating.average || 0) - (a.rating.average || 0))
+    .sort(
+      (a, b) =>
+        (b.rating.average || 0) - (a.rating.average || 0)
+    )
     .slice(0, 30)
     .map(show => ({
       id: show.id,
@@ -119,8 +135,34 @@ function transformarCatalogo(dados) {
       resumo: show.summary || "",
       status: show.status || "",
       estreia: show.premiered || "",
-      plataforma: show.network?.name || show.webChannel?.name || "Não informada"
+      plataforma:
+        show.network?.name ||
+        show.webChannel?.name ||
+        "Não informada"
     }));
+}
+
+/*
+ * Calcula a compatibilidade de uma série com os gêneros
+ * escolhidos pelo usuário.
+ *
+ * A classe Serie fica responsável pelo cálculo.
+ * Esta função organiza o processo e prepara os dados
+ * que serão usados pela interface.
+ */
+function calcularCompatibilidadeDaSerie(dados, generosPerfil) {
+  const serie = new Serie(dados);
+
+  const compatibilidade =
+    serie.calcularCompatibilidade(generosPerfil);
+
+  return {
+    ...compatibilidade,
+
+    resumoCurto: () => serie.resumoCurto(),
+
+    obterDuracao: () => serie.obterDuracao()
+  };
 }
 
 function calcularEstatisticas(resultados) {
@@ -132,10 +174,12 @@ function calcularEstatisticas(resultados) {
   return resultados.reduce(
     (acumulado, resultado) => ({
       totalGenerosComuns:
-        acumulado.totalGenerosComuns + resultado.generosEmComum.length,
+        acumulado.totalGenerosComuns +
+        resultado.generosEmComum.length,
 
       somaCompatibilidade:
-        acumulado.somaCompatibilidade + resultado.percentual
+        acumulado.somaCompatibilidade +
+        resultado.percentual
     }),
     {
       totalGenerosComuns: 0,
@@ -175,24 +219,15 @@ async function carregarRecomendacoes(perfil) {
     const catalogo = await buscarCatalogo();
     const dadosProntos = transformarCatalogo(catalogo);
 
-    resultadosAtuais = dadosProntos.map(dados => {
-      const serie = new Serie(dados);
-      const compatibilidade = serie.calcularCompatibilidade(perfil.generos);
+    resultadosAtuais = dadosProntos.map(dados =>
+      calcularCompatibilidadeDaSerie(
+        dados,
+        perfil.generos
+      )
+    );
 
-      /*
-       * IMPORTANTE:
-       * Não sobrescrevemos os métodos da classe Serie.
-       * As funções abaixo ficam no objeto de resultado e chamam
-       * os métodos originais da instância.
-       */
-      return {
-        ...compatibilidade,
-        resumoCurto: () => serie.resumoCurto(),
-        obterDuracao: () => serie.obterDuracao()
-      };
-    });
-
-    const estatisticas = calcularEstatisticas(resultadosAtuais);
+    const estatisticas =
+      calcularEstatisticas(resultadosAtuais);
 
     const media = obterMediaCompatibilidade(
       estatisticas,
@@ -202,7 +237,9 @@ async function carregarRecomendacoes(perfil) {
     const calculos = contadorCalculos();
 
     atualizarResumoPerfil(perfil, {
-      totalGenerosComuns: estatisticas.totalGenerosComuns,
+      totalGenerosComuns:
+        estatisticas.totalGenerosComuns,
+
       mediaCompatibilidade: media
     });
 
@@ -217,16 +254,24 @@ async function carregarRecomendacoes(perfil) {
       `${ordenados.length} séries analisadas · cálculo nº ${calculos} · média de compatibilidade: ${media}%`
     );
 
-    criarMensagemCallback(perfil.nome, atualizarMensagemCallback);
+    criarMensagemCallback(
+      perfil.nome,
+      atualizarMensagemCallback
+    );
+
   } catch (erro) {
     console.error("Erro no CineMatch:", erro);
 
-    const mensagem = erro instanceof TypeError
-      ? "Ocorreu um erro ao montar as recomendações. Atualize a página e tente novamente."
-      : "Não foi possível carregar as séries. Verifique sua internet e tente novamente.";
+    const mensagem =
+      erro instanceof TypeError
+        ? "Ocorreu um erro ao montar as recomendações. Atualize a página e tente novamente."
+        : "Não foi possível carregar as séries. Verifique sua internet e tente novamente.";
 
     mostrarErro(mensagem);
-    mostrarVazio("Não foi possível exibir as recomendações agora. Tente novamente.");
+
+    mostrarVazio(
+      "Não foi possível exibir as recomendações agora. Tente novamente."
+    );
   }
 }
 
@@ -241,11 +286,13 @@ form.addEventListener("submit", async event => {
   if (erro) return;
 
   salvarPerfil(perfil);
+
   await carregarRecomendacoes(perfil);
 });
 
 trocarPerfilBtn.addEventListener("click", () => {
   localStorage.removeItem(CHAVE_PERFIL);
+
   perfilAtual = null;
   resultadosAtuais = [];
 
